@@ -1,0 +1,136 @@
+cmake_minimum_required(VERSION 3.10)
+# Set app name.
+set(APP_NAME test_1)
+# Set project.
+project(${APP_NAME})
+# Set directory paths.
+set(COCOS2DX_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../../CubismNativeSamples-4-r.1/Samples/Cocos2d-x/thirdParty/cocos2d)
+set(CMAKE_MODULE_PATH ${COCOS2DX_ROOT_PATH}/cmake/Modules)
+set(SDK_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../../CubismNativeSamples-4-r.1)
+set(CORE_PATH ${SDK_ROOT_PATH}/Core)
+set(FRAMEWORK_PATH ${SDK_ROOT_PATH}/Framework)
+set(CLASSES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Classes)
+set(RES_PATH ${SDK_ROOT_PATH}/Samples/Resources)
+# Specify version of compiler.
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+########################################## ros ################################################
+find_package(catkin REQUIRED COMPONENTS
+#  roscpp
+#  std_msgs
+)
+#catkin_package(
+#  #LIBRARIES ${APP_NAME}
+#  DEPENDS Framework Live2DCubismCore cocos2d
+#)
+########################################## ros ################################################
+
+######################################### cocos #################################################
+# Add cocos libs.
+include(CocosBuildSet)
+add_subdirectory(
+  ${COCOS2DX_ROOT_PATH}/cocos
+  ${ENGINE_BINARY_PATH}/cocos/core
+)
+######################################### cocos #################################################
+
+######################################### class #################################################
+# Record sources, headers, resources...
+set(GAME_SOURCE)
+set(GAME_HEADER)
+# Add resource directories.
+set(GAME_RES_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/Resources ${RES_PATH})
+# Add cross-platforms source files and header files.
+list(APPEND GAME_SOURCE
+  ${CLASSES_PATH}/AppDelegate.cpp
+  ${CLASSES_PATH}/LAppAllocator.cpp
+  ${CLASSES_PATH}/LAppDefine.cpp
+  ${CLASSES_PATH}/LAppLive2DManager.cpp
+  ${CLASSES_PATH}/LAppModel.cpp
+  ${CLASSES_PATH}/LAppPal.cpp
+  ${CLASSES_PATH}/LAppSprite.cpp
+  ${CLASSES_PATH}/LAppView.cpp
+  ${CLASSES_PATH}/SampleScene.cpp
+  ${CLASSES_PATH}/TouchManager.cpp
+)
+list(APPEND GAME_HEADER
+  ${CLASSES_PATH}/AppDelegate.h
+  ${CLASSES_PATH}/AppMacros.h
+  ${CLASSES_PATH}/LAppAllocator.hpp
+  ${CLASSES_PATH}/LAppDefine.hpp
+  ${CLASSES_PATH}/LAppLive2DManager.hpp
+  ${CLASSES_PATH}/LAppModel.hpp
+  ${CLASSES_PATH}/LAppPal.hpp
+  ${CLASSES_PATH}/LAppSprite.hpp
+  ${CLASSES_PATH}/LAppView.hpp
+  ${CLASSES_PATH}/SampleScene.h
+  ${CLASSES_PATH}/TouchManager.h
+)
+######################################### class #################################################
+
+########################################Cubism Core#################################################
+# Add Cubism Core as static library.
+add_library(Live2DCubismCore STATIC IMPORTED)
+# Specify Cubism Core library path for each platform and add source files.
+list(APPEND GAME_SOURCE
+    src/test_1.cpp)
+set_target_properties(Live2DCubismCore
+    PROPERTIES
+      IMPORTED_LOCATION
+        ${CORE_PATH}/lib/linux/x86_64/libLive2DCubismCore.a
+  )
+# Set core include directory.
+set_target_properties(Live2DCubismCore
+  PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ${CORE_PATH}/include
+)
+#########################################Cubism Core#################################################
+
+#########################################Framework#################################################
+# Specify Cubism Framework rendering.
+set(FRAMEWORK_SOURCE OpenGL)
+# Add Cubism Framework.
+add_subdirectory(${FRAMEWORK_PATH} ${CMAKE_CURRENT_BINARY_DIR}/Framework)
+# Add definitions for Cubism Framework.
+target_compile_definitions(Framework PUBLIC CSM_TARGET_COCOS)
+#########################################Framework#################################################
+
+
+
+
+# Mark app complie info and libs info.
+set(all_code_files ${GAME_HEADER} ${GAME_SOURCE})
+add_executable(${APP_NAME} ${all_code_files})
+
+########################################## ros ################################################
+#include_directories(
+#    ${catkin_INCLUDE_DIRS}
+#)
+########################################## ros ################################################
+
+# Link libraries.
+target_link_libraries(${APP_NAME}
+Framework 
+Live2DCubismCore 
+cocos2d 
+#${catkin_LIBRARIES} #ros
+)
+
+
+# Specify include directories.
+target_include_directories(${APP_NAME} PRIVATE ${CLASSES_PATH})
+
+# Mark app resources and add definitions for Cubism Framework.
+setup_cocos_app_config(${APP_NAME})
+target_compile_definitions(Framework PUBLIC CSM_TARGET_LINUX_GL)
+
+
+
+# Copy resources.
+set(APP_RES_DIR $<TARGET_FILE_DIR:${APP_NAME}>/Resources)
+  cocos_copy_target_res(${APP_NAME}
+      COPY_TO ${APP_RES_DIR} FOLDERS ${GAME_RES_FOLDER}
+)

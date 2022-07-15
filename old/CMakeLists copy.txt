@@ -1,0 +1,151 @@
+cmake_minimum_required(VERSION 3.10)
+
+option(
+  CORE_CRL_MD
+  "Use Cubism Core that is multithread-specific and DLL-specific version"
+  OFF
+)
+
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+)
+
+# Set directory paths.
+set(COCOS2DX_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../../CubismNativeSamples-4-r.1/Samples/Cocos2d-x/thirdParty/cocos2d)
+set(CMAKE_MODULE_PATH ${COCOS2DX_ROOT_PATH}/cmake/Modules)
+set(SDK_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../../CubismNativeSamples-4-r.1)
+set(CORE_PATH ${SDK_ROOT_PATH}/Core)
+set(FRAMEWORK_PATH ${SDK_ROOT_PATH}/Framework)
+set(CLASSES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Classes)
+set(RES_PATH ${SDK_ROOT_PATH}/Samples/Resources)
+
+
+project(live2d_ros)
+
+
+# Set Visual Studio startup project.
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT test_1)
+
+# Define output directory.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src)
+
+# Set configuration (Release and Debug only).
+set(CMAKE_CONFIGURATION_TYPES Debug Release
+  CACHE STRING "Configurations" FORCE
+)
+# Suppress generation of ZERO_CHECK project.
+set(CMAKE_SUPPRESS_REGENERATION ON)
+
+# Specify version of compiler.
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -fpic -c -fexceptions -std=c++11 -Wno-deprecated-declarations -Wno-reorder") 
+
+# Add cocos libs.
+include(CocosBuildSet)
+add_subdirectory(
+  ${COCOS2DX_ROOT_PATH}/cocos
+  ${ENGINE_BINARY_PATH}/cocos/core
+)
+
+
+# Record sources, headers, resources...
+set(GAME_SOURCE)
+set(GAME_HEADER)
+set(GAME_RES_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/Resources ${RES_PATH})
+
+# Add cross-platforms source files and header files.
+list(APPEND GAME_SOURCE
+  ${CLASSES_PATH}/AppDelegate.cpp
+  ${CLASSES_PATH}/LAppAllocator.cpp
+  ${CLASSES_PATH}/LAppDefine.cpp
+  ${CLASSES_PATH}/LAppLive2DManager.cpp
+  ${CLASSES_PATH}/LAppModel.cpp
+  ${CLASSES_PATH}/LAppPal.cpp
+  ${CLASSES_PATH}/LAppSprite.cpp
+  ${CLASSES_PATH}/LAppView.cpp
+  ${CLASSES_PATH}/SampleScene.cpp
+  ${CLASSES_PATH}/TouchManager.cpp
+)
+
+list(APPEND GAME_HEADER
+  ${CLASSES_PATH}/AppDelegate.h
+  ${CLASSES_PATH}/AppMacros.h
+  ${CLASSES_PATH}/LAppAllocator.hpp
+  ${CLASSES_PATH}/LAppDefine.hpp
+  ${CLASSES_PATH}/LAppLive2DManager.hpp
+  ${CLASSES_PATH}/LAppModel.hpp
+  ${CLASSES_PATH}/LAppPal.hpp
+  ${CLASSES_PATH}/LAppSprite.hpp
+  ${CLASSES_PATH}/LAppView.hpp
+  ${CLASSES_PATH}/SampleScene.h
+  ${CLASSES_PATH}/TouchManager.h
+)
+
+
+
+# Add Cubism Core as static library.
+add_library(Live2DCubismCore STATIC IMPORTED)
+
+# Specify Cubism Core library path for each platform and add source files.
+list(APPEND GAME_SOURCE
+ #/../../../../CubismNativeSamples-4-r.1/Samples/Cocos2d-x/Demo/proj.linux/src/main.cpp
+ src/test_1.cpp
+)
+set_target_properties(Live2DCubismCore
+    PROPERTIES
+      IMPORTED_LOCATION
+        ${CORE_PATH}/lib/linux/x86_64/libLive2DCubismCore.a
+)
+
+# Set core include directory.
+set_target_properties(Live2DCubismCore
+  PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ${CORE_PATH}/include
+)
+
+
+# Specify Cubism Framework rendering.
+set(FRAMEWORK_SOURCE OpenGL)
+# Add Cubism Framework.
+add_subdirectory(${FRAMEWORK_PATH} ${SDK_ROOT_PATH}/Framework)
+# Add definitions for Cubism Framework.
+target_compile_definitions(Framework PUBLIC CSM_TARGET_COCOS)
+
+
+# Mark app complie info and libs info.
+set(all_code_files ${GAME_HEADER} ${GAME_SOURCE})
+add_executable(test_1 ${all_code_files})
+
+
+include_directories(
+    ${catkin_INCLUDE_DIRS}
+)
+
+
+# Link libraries.
+target_link_libraries(test_1 ${catkin_LIBRARIES}) 
+target_link_libraries(test_1 
+Framework 
+Live2DCubismCore 
+cocos2d
+)
+
+# Specify include directories.
+target_include_directories(test_1 PRIVATE ${CLASSES_PATH})
+
+# Mark app resources and add definitions for Cubism Framework.
+setup_cocos_app_config(test_1)
+
+
+# Mark app resources and add definitions for Cubism Framework.
+target_compile_definitions(Framework PUBLIC CSM_TARGET_LINUX_GL)
+
+# Copy resources.
+set(APP_RES_DIR $<TARGET_FILE_DIR:test_1>/Resources)
+cocos_copy_target_res(test_1
+  COPY_TO ${APP_RES_DIR} FOLDERS ${GAME_RES_FOLDER}
+)
